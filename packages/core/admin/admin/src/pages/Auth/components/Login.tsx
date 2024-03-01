@@ -1,13 +1,13 @@
 import * as React from 'react';
 
-import { Box, Button, Checkbox, Flex, Main, TextInput, Typography } from '@strapi/design-system';
+import { Box, Button, Checkbox, Flex, LinkButton, Main, TextInput, Typography } from '@strapi/design-system';
 import { Link } from '@strapi/design-system/v2';
 import { Form, translatedErrors, useQuery } from '@strapi/helper-plugin';
 import { Eye, EyeStriked } from '@strapi/icons';
 import { Formik } from 'formik';
 import camelCase from 'lodash/camelCase';
 import { useIntl } from 'react-intl';
-import { NavLink, useHistory } from 'react-router-dom';
+import { NavLink, Redirect, useHistory } from 'react-router-dom';
 import styled from 'styled-components';
 import * as yup from 'yup';
 
@@ -39,7 +39,7 @@ const Login = ({ children }: LoginProps) => {
   const { formatMessage } = useIntl();
   const query = useQuery();
   const { push } = useHistory();
-
+  const useSSO = true;
   const login = useAuth('Login', (state) => state.login);
 
   const handleLogin = async (body: Parameters<typeof login>[0]) => {
@@ -92,101 +92,122 @@ const Login = ({ children }: LoginProps) => {
               </Typography>
             ) : null}
           </Column>
-          <Formik
-            enableReinitialize
-            initialValues={{
-              email: '',
-              password: '',
-              rememberMe: false,
-            }}
-            onSubmit={(values) => {
-              handleLogin(values);
-            }}
-            validationSchema={LOGIN_SCHEMA}
-            validateOnChange={false}
-          >
-            {({ values, errors, handleChange }) => (
-              <Form>
-                <Flex direction="column" alignItems="stretch" gap={6}>
-                  <TextInput
-                    error={
-                      errors.email
-                        ? formatMessage({
+          {useSSO ? (
+            <Flex direction="column" alignItems="stretch" gap={6}>
+              <LinkButton startIcon={
+                <svg xmlns="http://www.w3.org/2000/svg" width={21} height={21}>
+                  <title>{"MS-SymbolLockup"}</title>
+                  <path fill="#f25022" d="M1 1h9v9H1z" />
+                  <path fill="#00a4ef" d="M1 11h9v9H1z" />
+                  <path fill="#7fba00" d="M11 1h9v9h-9z" />
+                  <path fill="#ffb900" d="M11 11h9v9h-9z" />
+                </svg>
+              } style={{ display: 'flex', justifyContent: 'center' }} href="/strapi-plugin-sso/azuread">
+
+                {formatMessage({ id: 'Auth.form.button.microsoftLogin', defaultMessage: 'Login with Microsoft' })}
+
+              </LinkButton>
+
+            </Flex>
+          ) : (
+            <Formik
+              enableReinitialize
+              initialValues={{
+                email: '',
+                password: '',
+                rememberMe: false,
+              }}
+              onSubmit={(values) => {
+                handleLogin(values);
+              }}
+              validationSchema={LOGIN_SCHEMA}
+              validateOnChange={false}
+            >
+              {({ values, errors, handleChange }) => (
+                <Form>
+                  <Flex direction="column" alignItems="stretch" gap={6}>
+                    <TextInput
+                      error={
+                        errors.email
+                          ? formatMessage({
                             id: errors.email,
                             defaultMessage: 'This value is required.',
                           })
-                        : ''
-                    }
-                    value={values.email}
-                    onChange={handleChange}
-                    label={formatMessage({ id: 'Auth.form.email.label', defaultMessage: 'Email' })}
-                    placeholder={formatMessage({
-                      id: 'Auth.form.email.placeholder',
-                      defaultMessage: 'kai@doe.com',
-                    })}
-                    name="email"
-                    required
-                  />
-                  <PasswordInput
-                    error={
-                      errors.password
-                        ? formatMessage({
+                          : ''
+                      }
+                      value={values.email}
+                      onChange={handleChange}
+                      label={formatMessage({ id: 'Auth.form.email.label', defaultMessage: 'Email' })}
+                      placeholder={formatMessage({
+                        id: 'Auth.form.email.placeholder',
+                        defaultMessage: 'kai@doe.com',
+                      })}
+                      name="email"
+                      required
+                    />
+                    <PasswordInput
+                      error={
+                        errors.password
+                          ? formatMessage({
                             id: errors.password,
                             defaultMessage: 'This value is required.',
                           })
-                        : ''
-                    }
-                    onChange={handleChange}
-                    value={values.password}
-                    label={formatMessage({
-                      id: 'global.password',
-                      defaultMessage: 'Password',
-                    })}
-                    name="password"
-                    type={passwordShown ? 'text' : 'password'}
-                    endAction={
-                      <FieldActionWrapper
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPasswordShown((prev) => !prev);
-                        }}
-                        label={formatMessage(
-                          passwordShown
-                            ? {
+                          : ''
+                      }
+                      onChange={handleChange}
+                      value={values.password}
+                      label={formatMessage({
+                        id: 'global.password',
+                        defaultMessage: 'Password',
+                      })}
+                      name="password"
+                      type={passwordShown ? 'text' : 'password'}
+                      endAction={
+                        <FieldActionWrapper
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPasswordShown((prev) => !prev);
+                          }}
+                          label={formatMessage(
+                            passwordShown
+                              ? {
                                 id: 'Auth.form.password.show-password',
                                 defaultMessage: 'Show password',
                               }
-                            : {
+                              : {
                                 id: 'Auth.form.password.hide-password',
                                 defaultMessage: 'Hide password',
                               }
-                        )}
-                      >
-                        {passwordShown ? <Eye /> : <EyeStriked />}
-                      </FieldActionWrapper>
-                    }
-                    required
-                  />
-                  <Checkbox
-                    onValueChange={(checked) => {
-                      handleChange({ target: { value: checked, name: 'rememberMe' } });
-                    }}
-                    value={values.rememberMe}
-                    aria-label="rememberMe"
-                    name="rememberMe"
-                  >
-                    {formatMessage({
-                      id: 'Auth.form.rememberMe.label',
-                      defaultMessage: 'Remember me',
-                    })}
-                  </Checkbox>
-                  <Button fullWidth type="submit">
-                    {formatMessage({ id: 'Auth.form.button.login', defaultMessage: 'Login' })}
-                  </Button>
-                </Flex>
-              </Form>
-            )}
-          </Formik>
+                          )}
+                        >
+                          {passwordShown ? <Eye /> : <EyeStriked />}
+                        </FieldActionWrapper>
+                      }
+                      required
+                    />
+                    <Checkbox
+                      onValueChange={(checked) => {
+                        handleChange({ target: { value: checked, name: 'rememberMe' } });
+                      }}
+                      value={values.rememberMe}
+                      aria-label="rememberMe"
+                      name="rememberMe"
+                    >
+                      {formatMessage({
+                        id: 'Auth.form.rememberMe.label',
+                        defaultMessage: 'Remember me',
+                      })}
+                    </Checkbox>
+                    <Button fullWidth type="submit">
+                      {formatMessage({ id: 'Auth.form.button.login', defaultMessage: 'Login' })}
+                    </Button>
+                  </Flex>
+                </Form>
+              )}
+            </Formik>
+          )
+          }
+
           {children}
         </LayoutContent>
         <Flex justifyContent="center">
